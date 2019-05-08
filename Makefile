@@ -1,4 +1,4 @@
-NAME = computorV1
+NAME = computor
 
 all: build_release $(NAME)
 

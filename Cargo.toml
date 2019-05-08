@@ -1,5 +1,5 @@
 [package]
-name = "ComputorV1"
+name = "computor"
 version = "0.1.0"
 authors = ["jafaghpo <jafaghpo@student.42.fr>"]
 edition = "2018"
