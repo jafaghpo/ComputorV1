@@ -1,14 +1,50 @@
 use std::env;
 use std::process::exit;
 
-use computor::lexer;
-// use computor::parser;
-use lexer::Token;
+use computor::{lexer, expression, equation};
+use lexer::{Token, Comparison};
 
 fn exit_error(msg: &str)
 {
 	eprintln!("{}", msg);
 	exit(1);
+}
+
+fn display_result(result: f64)
+{
+	print!("Result: ");
+	match result.is_finite()
+	{
+		true => match (result >= 1e6, result.floor() != result)
+		{
+			(true, _) => println!("{:.2e}", result),
+			(false, true) => println!("{:.2}", result),
+			(false, false) => println!("{}", result),
+		}
+		false => println!("Infinite number"),
+	}
+}
+
+fn compute_expression(expression: String) -> Result<(), String>
+{
+	let (tokens, comparison_token) = lexer::get_tokens(&expression)?;
+	if comparison_token == Token::Cmp(Comparison::No)
+	{
+		let result = expression::parse(&tokens)?;
+		display_result(result);
+	}
+	else
+	{
+		let coef = equation::parse(&tokens)?;
+		println!("coef: {:?}", coef);
+	}
+	// let coefs = parser::eval_equation(&tokens);
+	// println!("Comparison token: {:?}", comparison_token);
+	// for token in tokens
+	// {
+	// 	println!("token: {:?}", token);
+	// }
+	Ok(())
 }
 
 fn main()
@@ -17,21 +53,9 @@ fn main()
 	if args.len() != 2 { exit_error("Error: invalid number of arguments") }
 	let expr = args[1].to_owned();
 	if expr.is_empty() { exit_error("Error: the expression must not be empty") }
-	let (tokens, comparison_token) = match lexer::get_tokens(&expr)
+
+	if let Err(e) = compute_expression(expr)
 	{
-		Ok(t) => t,
-		Err(e) => { exit_error(&e); (vec![], Token::Empty) }
-	};
-	// if comparison_token == Token::Empty
-	// {
-	// 	let result = parser::eval_expression(&tokens);
-	// 	println!("{}", result);
-	// 	return
-	// }
-	// let coefs = parser::eval_equation(&tokens);
-	println!("Comparison token: {:?}", comparison_token);
-	for token in tokens
-	{
-		println!("token: {:?}", token);
+		exit_error(&e);
 	}
 }
