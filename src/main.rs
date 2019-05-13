@@ -1,8 +1,10 @@
 use std::env;
 use std::process::exit;
+use std::cmp;
 
-use computor::{lexer, expression, equation};
-use lexer::{Token, Comparison};
+use computor::{parser, solver};
+use parser::{Token, Comparison, Operator};
+// use lexer::{Token, Comparison};
 
 fn exit_error(msg: &str)
 {
@@ -10,40 +12,51 @@ fn exit_error(msg: &str)
 	exit(1);
 }
 
-fn display_result(result: f64)
+fn polynomial_degree(coef: &Vec<f64>) -> u8
 {
-	print!("Result: ");
-	match result.is_finite()
+	coef.iter().enumerate().fold(0, |d, (i, n)|
+		if *n > 0.0 { cmp::max(2 - i as u8, d) } else { d })
+}
+
+fn print_reduced_form(coef: &Vec<f64>, cmp: &Comparison)
+{
+	let mut i = 2;
+	print!("Reduced form:");
+	for n in coef
 	{
-		true => match (result >= 1e6, result.floor() != result)
+		if *n != 0.0
 		{
-			(true, _) => println!("{:.2e}", result),
-			(false, true) => println!("{:.2}", result),
-			(false, false) => println!("{}", result),
+			print!(" {}", Token::Var((*n, i)));
+			match i
+			{
+				2 => print!(" {}", Token::Operator(Operator::Add)),
+				1 if coef[2] != 0.0 => print!(" {}", Token::Operator(Operator::Add)),
+				_ => ()
+			}
 		}
-		false => println!("Infinite number"),
+		i -= 1;
 	}
+	if coef.iter().all(|x| *x == 0.0) { print!(" 0") }
+
+	if *cmp != Comparison::No
+	{
+		print!(" {} 0", cmp);
+	}
+	println!("");
 }
 
 fn compute_expression(expression: String) -> Result<(), String>
 {
-	let (tokens, comparison_token) = lexer::get_tokens(&expression)?;
-	if comparison_token == Token::Cmp(Comparison::No)
+	let (tokens, comparison_token) = parser::get_tokens(&expression)?;
+	let tokens = parser::reduce_tokens(tokens)?;
+	let coef = parser::get_coefficients(&tokens);
+	print_reduced_form(&coef, &comparison_token);
+	let degree = polynomial_degree(&coef);
+	println!("Polynomial degree: {}", degree);
+	if comparison_token != Comparison::No
 	{
-		let result = expression::parse(&tokens)?;
-		display_result(result);
+		solver::get_solution(&coef, degree, comparison_token);
 	}
-	else
-	{
-		let coef = equation::parse(&tokens)?;
-		println!("coef: {:?}", coef);
-	}
-	// let coefs = parser::eval_equation(&tokens);
-	// println!("Comparison token: {:?}", comparison_token);
-	// for token in tokens
-	// {
-	// 	println!("token: {:?}", token);
-	// }
 	Ok(())
 }
 
