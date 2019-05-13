@@ -3,8 +3,7 @@ use std::process::exit;
 use std::cmp;
 
 use computor::{parser, solver};
-use parser::{Token, Comparison, Operator};
-// use lexer::{Token, Comparison};
+use computor::{Token, Comparison, Operator};
 
 fn exit_error(msg: &str)
 {
@@ -29,7 +28,7 @@ fn print_reduced_form(coef: &Vec<f64>, cmp: &Comparison)
 			print!(" {}", Token::Var((*n, i)));
 			match i
 			{
-				2 => print!(" {}", Token::Operator(Operator::Add)),
+				2 if coef[1] != 0.0 || coef[2] != 0.0 => print!(" {}", Token::Operator(Operator::Add)),
 				1 if coef[2] != 0.0 => print!(" {}", Token::Operator(Operator::Add)),
 				_ => ()
 			}
@@ -52,9 +51,9 @@ fn compute_expression(expression: String) -> Result<(), String>
 	let coef = parser::get_coefficients(&tokens);
 	print_reduced_form(&coef, &comparison_token);
 	let degree = polynomial_degree(&coef);
-	println!("Polynomial degree: {}", degree);
 	if comparison_token != Comparison::No
 	{
+		println!("Polynomial degree: {}", degree);
 		solver::get_solution(&coef, degree, comparison_token);
 	}
 	Ok(())
@@ -63,12 +62,15 @@ fn compute_expression(expression: String) -> Result<(), String>
 fn main()
 {
 	let args: Vec<String> = env::args().collect();
-	if args.len() != 2 { exit_error("Error: invalid number of arguments") }
+
+	if args.len() != 2
+	{
+		exit_error("Error: invalid number of arguments");
+	}
+
 	let expr = args[1].to_owned();
+
 	if expr.is_empty() { exit_error("Error: the expression must not be empty") }
 
-	if let Err(e) = compute_expression(expr)
-	{
-		exit_error(&e);
-	}
+	if let Err(e) = compute_expression(expr) { exit_error(&e) }
 }

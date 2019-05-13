@@ -1,157 +1,8 @@
 use std::iter::Peekable;
 use std::collections::HashSet;
-use std::fmt;
 
-#[derive(Debug, Clone, PartialEq)]
-pub enum Comparison
-{
-	Equal,
-	Greater,
-	GreaterEq,
-	Lower,
-	LowerEq,
-	No
-}
-
-impl fmt::Display for Comparison
-{
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result
-    {
-        let to_display = match self
-		{
-			Comparison::Equal => "=",
-			Comparison::Greater => ">",
-			Comparison::GreaterEq => ">=",
-			Comparison::Lower => "<",
-			Comparison::LowerEq => "<=",
-			Comparison::No => "nothing"
-		};
-        write!(f, "{}", to_display)
-    }
-}
-
-#[derive(Debug, Clone, PartialEq)]
-pub enum Operator
-{
-	Add,
-	Sub,
-	Div,
-	Mult
-}
-
-impl fmt::Display for Operator
-{
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result
-    {
-        let to_display = match self
-		{
-			Operator::Add => "+",
-			Operator::Sub => "-",
-			Operator::Div => "/",
-			Operator::Mult => "*"
-		};
-        write!(f, "{}", to_display)
-    }
-}
-
-#[derive(Debug, Clone, PartialEq)]
-pub enum Token
-{
-	Var((f64, u8)),
-	Operator(Operator),
-	Cmp(Comparison),
-}
-
-impl Token
-{
-	pub fn same_type_as(&self, other: &Self) -> bool
-	{
-		match self
-		{
-			Token::Var((_, 0)) => if let Token::Var((_, 0)) = other { true } else { false }
-			Token::Var(_) => if let Token::Var(_) = other { true } else { false }
-			Token::Operator(_) => if let Token::Operator(_) = other { true } else { false }
-			Token::Cmp(_) => if let Token::Cmp(_) = other { true } else { false }
-		}
-	}
-
-	pub fn is_variable(&self) -> bool
-	{
-		match self
-		{
-			Token::Var(_) => true,
-			_ => false
-		}
-	}
-}
-
-impl fmt::Display for Token
-{
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result
-    {
-        let to_display = match self
-		{
-			Token::Var((n, d)) =>
-			{
-				match d
-				{
-					2 => format!("{}x²", format_number(*n)),
-					1 => format!("{}x", format_number(*n)),
-					0 | _ => format!("{}", format_number(*n))
-				}
-			}
-			Token::Operator(op) => format!("{}", op),
-			Token::Cmp(c) => format!("{}", c)
-		};
-        write!(f, "{}", to_display)
-    }
-}
-
-pub fn format_number(n: f64) -> String
-{
-	match n.is_finite()
-	{
-		true => match (n >= 1e6 || n <= -1e6, n.floor() != n)
-		{
-			(true, _) => format!("{:.2e}", n),
-			(false, true) => format!("{:.2}", n),
-			(false, false) => format!("{}", n),
-		}
-		false =>
-		{
-			match n.is_sign_positive()
-			{
-				true => format!("∞"),
-				false => format!("-∞")
-			}
-		}
-	}
-}
-
-pub fn pow(x: f64, n: u8) -> f64
-{
-	let mut number: f64 = 1.0;
-	for _ in 0..n
-	{
-		number *= x;
-	}
-	number
-}
-
-pub fn do_op(a: f64, b: f64, op: &Operator) -> Result<f64, String>
-{
-	match op
-	{
-		Operator::Add => Ok(a + b),
-		Operator::Sub => Ok(a - b),
-		Operator::Mult => Ok(a * b),
-		Operator::Div =>
-		{
-			if b != 0.0 { Ok(a / b) }
-			else { Err(format!("Syntax error: attempted to divide {} by zero", a)) }
-		}
-	}
-}
+use crate::{Token, Comparison, Operator};
+use crate::{pow, do_op};
 
 pub fn get_exponent<T: Iterator<Item=char>>(chars: &mut Peekable<T>, token_list: &HashSet<char>) -> Result<u8, String>
 {
@@ -213,6 +64,17 @@ pub fn get_number<T: Iterator<Item=char>>(c: char, chars: &mut Peekable<T>, toke
 	{
 		chars.next();
 		return Ok(Token::Var((pow(number, 2), 0)));
+	}
+	if let Some(c) = chars.peek()
+	{
+		if *c == 'x' || *c == 'X'
+		{
+			chars.next();
+			if let Token::Var((n, p)) = get_var_exponent(chars, token_list)?
+			{
+				return Ok(Token::Var((number * n, p)));
+			}
+		}
 	}
 	Ok(Token::Var((number, 0)))
 }
