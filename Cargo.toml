@@ -1,6 +1,6 @@
 [package]
 name = "computor"
-version = "0.1.0"
+version = "1.0.0"
 authors = ["jafaghpo <jafaghpo@student.42.fr>"]
 edition = "2018"
 

@@ -90,11 +90,11 @@ pub fn format_number(n: f64) -> String
 {
 	match n.is_finite()
 	{
-		true => match (n >= 1e6 || n <= -1e6, n.floor() != n)
+		true => match (n >= 1e6 || n < -1e6, abs(n) < 1e-2 && n != 0.0, n.floor() != n)
 		{
-			(true, _) => format!("{:.2e}", n),
-			(false, true) => format!("{:.2}", n),
-            (false, false) => format!("{}", n),
+			(true, ..) | (_, true, _)=> format!("{:.2e}", n),
+			(false, false, true) => format!("{:.2}", n),
+            (false, false, false) => format!("{}", n),
 		}
 		false =>
 		{

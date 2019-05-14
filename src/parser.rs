@@ -4,14 +4,24 @@ use std::collections::HashSet;
 use crate::{Token, Comparison, Operator};
 use crate::{pow, do_op};
 
+pub fn skip_ws<T: Iterator<Item=char>>(chars: &mut Peekable<T>)
+{
+	while let Some(next) = chars.peek()
+	{
+		if *next != ' ' && *next != '\t' { break }
+		chars.next();
+	}
+}
+
 pub fn get_exponent<T: Iterator<Item=char>>(chars: &mut Peekable<T>, token_list: &HashSet<char>) -> Result<u8, String>
 {
 	let mut str_number = String::new();
+	skip_ws(chars);
 	while let Some(next) = chars.peek()
 	{
 		match next
 		{
-			'0'...'9' => str_number.push(*next),
+			'0'...'9' | '-' => str_number.push(*next),
 			_ if !token_list.contains(next) =>
 			{
 				return Err(format!("Lexical error: '{}' is not a valid token", next))
@@ -54,6 +64,7 @@ pub fn get_number<T: Iterator<Item=char>>(c: char, chars: &mut Peekable<T>, toke
 		Ok(n) => Ok(n),
 		Err(_) => Err(format!("Syntax error: '{}' is not a valid number", str_number))
 	}?;
+	skip_ws(chars);
 	if let Some('^') = chars.peek()
 	{
 		chars.next();
@@ -81,6 +92,7 @@ pub fn get_number<T: Iterator<Item=char>>(c: char, chars: &mut Peekable<T>, toke
 
 pub fn get_var_exponent<T: Iterator<Item=char>>(chars: &mut Peekable<T>, token_list: &HashSet<char>) -> Result<Token, String>
 {
+	skip_ws(chars);
 	while let Some(next) = chars.peek()
 	{
 		match next
@@ -91,6 +103,7 @@ pub fn get_var_exponent<T: Iterator<Item=char>>(chars: &mut Peekable<T>, token_l
 			_ => return Err(format!("Lexical error: '{}' is not a valid token", next))
 		}
 	}
+	skip_ws(chars);
 	while let Some(next) = chars.peek()
 	{
 		let token = match next
@@ -152,22 +165,23 @@ pub fn get_token_list() -> HashSet<char>
 
 pub fn get_tokens(expression: &String) -> Result<(Vec<Token>, Comparison), String>
 {
-	let expr = expression.replace(" ", "").replace("\t", "");
 	let token_list = get_token_list();
 	let mut cmp_token = Comparison::No;
-	let mut chars = expr.chars().peekable();
+	let mut chars = expression.chars().peekable();
 	let mut tokens: Vec<Token> = vec![];
 
 	while let Some(c) = chars.next()
 	{
 		match c
 		{
+			' ' | '\t' => (),
 			'0'...'9' => tokens.push(get_number(c, &mut chars, &token_list)?),
 			'x' | 'X' => tokens.push(get_var_exponent(&mut chars, &token_list)?),
 			'^' | '²' => return Err(format!("Syntax error: '^' is only valid after a number or a variable")),
 			'+' => tokens.push(Token::Operator(Operator::Add)),
 			'-' =>
 			{
+				skip_ws(&mut chars);
 				if let Some(next) = chars.peek()
 				{
 					match next
@@ -178,7 +192,12 @@ pub fn get_tokens(expression: &String) -> Result<(Vec<Token>, Comparison), Strin
 							let token = get_number(num, &mut chars, &token_list)?;
 							if let Token::Var((n, p)) = token
 							{
-								tokens.push(Token::Operator(Operator::Add));
+								match tokens.last()
+								{
+									Some(Token::Operator(_)) | Some(Token::Cmp(_))=> (),
+									_ if tokens.len() == 0 => (),
+									_ => tokens.push(Token::Operator(Operator::Add))
+								}
 								tokens.push(Token::Var((n * -1.0, p)));
 							}
 						}
