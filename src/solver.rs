@@ -73,7 +73,7 @@ fn solution_degree_2(coef: &Vec<f64>, delta: f64, positive: bool, cmp_token: &Co
 		sol.push((-coef[1] + delta.sqrt()) / (2.0 * coef[0]));
 		println!("When Y = 0, X = {{S1, S2}} with");
 		println!("S1 = (-b - √Δ) / 2a = {}", format_number(sol[0]));
-		println!("S1 = (-b + √Δ) / 2a = {}\n", format_number(sol[1]));
+		println!("S2 = (-b + √Δ) / 2a = {}\n", format_number(sol[1]));
 		sol.sort_by(|a, b| a.partial_cmp(b).unwrap());
 		let sol = vec![format_number(sol[0]), format_number(sol[1])];
 		match cmp_token
@@ -173,7 +173,7 @@ fn solution_degree_2(coef: &Vec<f64>, delta: f64, positive: bool, cmp_token: &Co
         sol.push((-coef[1] + abs(delta).sqrt()) / (2.0 * coef[0]));
 		println!("When Y = 0, X = {{S1, S2}} with");
 		println!("S1 = (-b - √Δ) / 2a = {}i", format_number(sol[0]));
-		println!("S1 = (-b + √Δ) / 2a = {}i\n", format_number(sol[1]));
+		println!("S2 = (-b + √Δ) / 2a = {}i\n", format_number(sol[1]));
 		sol.sort_by(|a, b| a.partial_cmp(b).unwrap());
 		let sol = vec![format_number(sol[0]), format_number(sol[1])];
 		match cmp_token
