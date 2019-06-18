@@ -58,8 +58,18 @@ impl fmt::Display for Operator
 #[derive(Debug, Clone, PartialEq)]
 pub enum Token
 {
+	// f64 is the coefficient and u8 the degree
+	// ex:	Var(2.0, 2) => 2.0 * x²
+	//      Var(-65.7, 1) => -65.7 * x
+	// 		Var(3.2, 0) => 3.2 * x ^ 0
+	//					 = 3.2 * 1
+	//					 = 3.2
 	Var((f64, u8)),
+
+	// '+' | '-' | '/' | '*'
 	Operator(Operator),
+
+	// '>' | '<' | '>=' | '<=' | '='
 	Cmp(Comparison),
 }
 
@@ -88,12 +98,17 @@ impl Token
 
 pub fn format_number(n: f64) -> String
 {
+	// Check if number is infinite or not
 	match n.is_finite()
 	{
+		// match n if (too many digits, 	 too many 0's,              is not an integer)
 		true => match (n >= 1e6 || n < -1e6, abs(n) < 1e-2 && n != 0.0, n.floor() != n)
 		{
+			// If too many digits to display (more than 6)=> print with scientific notation with a precision of 2
 			(true, ..) | (_, true, _)=> format!("{:.2e}", n),
+			// If regular float
 			(false, false, true) => format!("{:.2}", n),
+			// If integer
             (false, false, false) => format!("{}", n),
 		}
 		false =>
